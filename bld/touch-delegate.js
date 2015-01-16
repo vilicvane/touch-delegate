@@ -668,9 +668,6 @@ var TouchDelegate;
         Identifier.tap = new Identifier('tap', function (info) {
             var sequences = info.sequences;
             var sequence = sequences[0];
-            if (!sequence) {
-                alert(JSON.stringify(info, null, '  '));
-            }
             if (sequences.length > 1 || sequence.timeLasting > 500 || sequence.maxRadius > 5) {
                 return {
                     identified: true,

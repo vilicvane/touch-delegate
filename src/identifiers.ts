@@ -30,10 +30,6 @@ module TouchDelegate {
             var sequences = info.sequences;
             var sequence = sequences[0];
 
-            if (!sequence) {
-                alert(JSON.stringify(info, null, '  '));
-            }
-
             if (
                 sequences.length > 1 ||
                 sequence.timeLasting > 500 ||
