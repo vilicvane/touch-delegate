@@ -132,7 +132,7 @@ declare module TouchDelegate {
         private _insert(item);
         private static _timeoutIds;
         private static _trigger(triggerItem?);
-        add(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority?: number): void;
+        on(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority?: number): void;
         delegate(identifier: Identifier, selector: any, listener: (event: IDelegateEvent) => void, priority?: number): void;
     }
 }

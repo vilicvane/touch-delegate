@@ -696,7 +696,7 @@ module TouchDelegate {
             });
         }
 
-        add(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority = 0) {
+        on(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority = 0) {
             this._insert({
                 id: (Delegate._added++).toString(),
                 identifier: identifier,

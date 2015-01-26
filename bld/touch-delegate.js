@@ -552,7 +552,7 @@ var TouchDelegate;
                 }
             });
         };
-        Delegate.prototype.add = function (identifier, listener, priority) {
+        Delegate.prototype.on = function (identifier, listener, priority) {
             if (priority === void 0) { priority = 0; }
             this._insert({
                 id: (Delegate._added++).toString(),
