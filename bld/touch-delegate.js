@@ -30,15 +30,8 @@ var TouchDelegate;
         }
         Utils.clone = clone;
         var StringHash = (function () {
-            function StringHash(keys) {
+            function StringHash() {
                 this._map = {};
-                if (keys) {
-                    var map = this._map;
-                    if (!(keys instanceof Array)) {
-                        keys = Object.keys(keys);
-                    }
-                    keys.forEach(function (key) { return map[key] = null; });
-                }
             }
             Object.defineProperty(StringHash.prototype, "keys", {
                 get: function () {
@@ -63,14 +56,8 @@ var TouchDelegate;
         })();
         Utils.StringHash = StringHash;
         var StringMap = (function () {
-            function StringMap(items, uidKey) {
+            function StringMap() {
                 this._map = {};
-                var map = this._map;
-                if (items instanceof Array) {
-                    items.forEach(function (item) {
-                        map[item[uidKey]] = item;
-                    });
-                }
             }
             Object.defineProperty(StringMap.prototype, "map", {
                 get: function () {
@@ -571,6 +558,29 @@ var TouchDelegate;
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
                 listener: listener,
+                priority: priority
+            });
+        };
+        Delegate.prototype.delegate = function (identifier, selector, listener, priority) {
+            var _this = this;
+            if (priority === void 0) { priority = 0; }
+            this._insert({
+                id: (Delegate._added++).toString(),
+                identifier: identifier,
+                listener: function (event) {
+                    var $target = $(event.target);
+                    var target;
+                    if ($target.is(selector)) {
+                        target = $target[0];
+                    }
+                    else {
+                        target = $target.closest(selector, _this._$target[0])[0];
+                    }
+                    if (target) {
+                        event.target = target;
+                        listener(event);
+                    }
+                },
                 priority: priority
             });
         };

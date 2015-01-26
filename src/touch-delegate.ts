@@ -72,21 +72,6 @@ module TouchDelegate {
         export class StringHash {
             private _map: IDictionary<void> = {};
 
-            constructor();
-            constructor(keys: string[]);
-            constructor(keys: Object);
-            constructor(keys?: any) {
-                if (keys) {
-                    var map = this._map;
-
-                    if (!(keys instanceof Array)) {
-                        keys = Object.keys(keys);
-                    }
-
-                    (<string[]>keys).forEach(key => map[key] = null);
-                }
-            }
-
             get keys(): string[] {
                 return Object.keys(this._map);
             }
@@ -110,17 +95,6 @@ module TouchDelegate {
 
         export class StringMap<T> {
             private _map: IDictionary<T> = {};
-
-            constructor();
-            constructor(items: T[], uidKey: string);
-            constructor(items?: T[], uidKey?: string) {
-                var map = this._map;
-                if (items instanceof Array) {
-                    items.forEach(item => {
-                        map[item[uidKey]] = item;
-                    });
-                }
-            }
 
             get map(): IDictionary<T> {
                 return clone(this._map);
@@ -727,6 +701,29 @@ module TouchDelegate {
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
                 listener: listener,
+                priority: priority
+            });
+        }
+
+        delegate(identifier: Identifier, selector: any, listener: (event: IDelegateEvent) => void, priority = 0) {
+            this._insert({
+                id: (Delegate._added++).toString(),
+                identifier: identifier,
+                listener: (event: IDelegateEvent) => {
+                    var $target = $(event.target);
+                    var target: HTMLElement;
+
+                    if ($target.is(selector)) {
+                        target = $target[0];
+                    } else {
+                        target = $target.closest(selector, this._$target[0])[0];
+                    }
+
+                    if (target) {
+                        event.target = target;
+                        listener(event);
+                    }
+                },
                 priority: priority
             });
         }

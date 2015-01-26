@@ -36,9 +36,6 @@ declare module TouchDelegate {
         function clone<T extends {}>(src: T): T;
         class StringHash {
             private _map;
-            constructor();
-            constructor(keys: string[]);
-            constructor(keys: Object);
             keys: string[];
             exists(key: string): boolean;
             set(key: string): void;
@@ -47,8 +44,6 @@ declare module TouchDelegate {
         }
         class StringMap<T> {
             private _map;
-            constructor();
-            constructor(items: T[], uidKey: string);
             map: IDictionary<T>;
             keys: string[];
             exists(key: string): boolean;
@@ -138,6 +133,7 @@ declare module TouchDelegate {
         private static _timeoutIds;
         private static _trigger(triggerItem?);
         add(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority?: number): void;
+        delegate(identifier: Identifier, selector: any, listener: (event: IDelegateEvent) => void, priority?: number): void;
     }
 }
 declare module TouchDelegate {
