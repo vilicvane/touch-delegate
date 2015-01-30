@@ -489,7 +489,16 @@ var TouchDelegate;
                 var dataMap = info.dataMap;
                 var identified = dataMap.exists(id);
                 var data = dataMap.get(id);
-                var result = identifier.identify(info, identified, data);
+                var result;
+                try {
+                    result = identifier.identify(info, identified, data);
+                }
+                catch (e) {
+                    setTimeout(function () {
+                        throw e;
+                    }, 0);
+                    return false;
+                }
                 if (!result) {
                     return true;
                 }
@@ -538,7 +547,14 @@ var TouchDelegate;
                         if (data) {
                             $.extend(eventData, data);
                         }
-                        item.listener(eventData);
+                        try {
+                            item.listener(eventData);
+                        }
+                        catch (e) {
+                            setTimeout(function () {
+                                throw e;
+                            }, 0);
+                        }
                     }
                     if (!match || result.end !== false) {
                         return false;

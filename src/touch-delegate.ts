@@ -627,7 +627,16 @@ module TouchDelegate {
                 var identified = dataMap.exists(id);
                 var data = dataMap.get(id);
 
-                var result = identifier.identify(info, identified, data);
+                var result: IIdentifierResult;
+
+                try {
+                    result = identifier.identify(info, identified, data);
+                } catch (e) {
+                    setTimeout(() => {
+                        throw e;
+                    }, 0);
+                    return false;
+                }
 
                 if (!result) {
                     return true;
@@ -682,12 +691,18 @@ module TouchDelegate {
                             $.extend(eventData, data);
                         }
 
-                        item.listener(eventData);
+                        try {
+                            item.listener(eventData);
+                        } catch (e) {
+                            setTimeout(() => {
+                                throw e;
+                            }, 0);
+                        }
                     }
 
                     if (!match || result.end !== false) {
                         return false;
-                    } else { 
+                    } else {
                         return true;
                     }
                 } else {
