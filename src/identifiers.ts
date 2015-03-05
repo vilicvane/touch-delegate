@@ -21,11 +21,14 @@ module TouchDelegate {
         constructor(
             public name: string,
             public identify: (info: TouchInfo, identified: boolean, data: any) => IIdentifierResult
-            ) {
-        }
+            ) { }
     }
 
     export module Identifier {
+
+        /**
+         * `tap` identifier, identifies a quick touch.
+         */
         export var tap = new Identifier('tap', info => {
             var sequences = info.sequences;
             var sequence = sequences[0];
@@ -51,6 +54,9 @@ module TouchDelegate {
             }
         });
 
+        /**
+         * `hold` identifier, identifiers a touch longer than 500ms.
+         */
         export var hold = new Identifier('hold', info => {
             var sequences = info.sequences;
             var sequence = sequences[0];
@@ -74,7 +80,7 @@ module TouchDelegate {
                 };
             }
 
-            if (sequence.timeLasting >= 1000) {
+            if (sequence.timeLasting >= 500) {
                 return {
                     identified: true,
                     match: true,
@@ -90,6 +96,9 @@ module TouchDelegate {
             }
         });
 
+        /**
+         * delegate event interface for `free` identifier.
+         */
         export interface IFreeDelegateEvent extends IDelegateEvent {
             diffX: number;
             diffY: number;
@@ -97,6 +106,9 @@ module TouchDelegate {
             y: number;
         }
 
+        /**
+         * `free` identifier, matches any touch with data of the first touch sequence.
+         */
         export var free = new Identifier('free', info => {
             var sequence = info.sequences[0];
 
@@ -112,21 +124,27 @@ module TouchDelegate {
                 }
             };
         });
-
+        
+        /**
+         * delegate event interface for `slide-x` identifier.
+         */
         export interface ISlideXDelegateEvent extends IDelegateEvent { 
             diffX: number;
         }
 
+        /**
+         * `slide-x` identifier, identifiers horizontally touch moving.
+         */
         export var slideX = new Identifier('slide-x', (info, identified) => {
             var sequences = info.sequences;
             var sequence = sequences[0];
 
             var match = identified;
-
+            
             if (!identified && sequence.maxRadius > 2) {
                 identified = true;
 
-                if (Math.abs(sequence.slope) < 1 && sequences.length == 1) {
+                if (Math.abs(sequence.lastSlope) < 1 && sequences.length == 1) {
                     match = true;
                 }
             }
@@ -140,11 +158,17 @@ module TouchDelegate {
                 }
             };
         });
-
+        
+        /**
+         * delegate event interface for `slide-y` identifier.
+         */
         export interface ISlideYDelegateEvent extends IDelegateEvent {
             diffY: number;
         }
-
+        
+        /**
+         * `slide-y` identifier, identifiers vertically touch moving.
+         */
         export var slideY = new Identifier('slide-y', (info, identified) => {
             var sequences = info.sequences;
             var sequence = sequences[0];
@@ -154,7 +178,7 @@ module TouchDelegate {
             if (!identified && sequence.maxRadius > 2) {
                 identified = true;
 
-                if (Math.abs(sequence.slope) > 1 && sequences.length == 1) {
+                if (Math.abs(sequence.lastSlope) > 1 && sequences.length == 1) {
                     match = true;
                 }
             }
@@ -168,60 +192,5 @@ module TouchDelegate {
                 }
             };
         });
-
-        export interface IPolylineDelegateEvent extends IDelegateEvent, IPolylineData { }
-
-        export interface IPolylineData {
-            changedAxis: string; // 'x' or 'y'
-            diffX: number;
-            diffY: number;
-        }
-
-        export var polylineAfterSlideY = new Identifier('polyline-after-slide-y', (info: TouchInfo, identified: boolean, data: IPolylineData) => {
-            var sequences = info.sequences;
-            var sequence = sequences[0];
-
-            var match = identified;
-
-            if (!identified && sequence.maxRadius > 2) {
-                identified = true;
-
-                if (Math.abs(sequence.slope) > 1 && sequences.length == 1) {
-                    match = true;
-                }
-            }
-
-            var lastSlope = Math.abs(sequence.lastSlope);
-
-            if (!data) { 
-                data = {
-                    changedAxis: 'y',
-                    diffX: 0,
-                    diffY: 0
-                };
-            }
-
-            if (lastSlope > 1) {
-                // y
-                data.changedAxis = 'y';
-                data.diffY += sequence.lastDiffY;
-            } else if (lastSlope < 1) {
-                // x
-                data.changedAxis = 'x';
-                data.diffX += sequence.lastDiffX;
-            } else if (data.changedAxis == 'y') {
-                data.diffY += sequence.lastDiffY;
-            } else {
-                data.diffX += sequence.lastDiffX;
-            }
-
-            return {
-                identified: identified,
-                match: match,
-                end: false,
-                data: data
-            };
-        });
-
     }
 }

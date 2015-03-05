@@ -150,30 +150,50 @@ declare module TouchDelegate {
         constructor(name: string, identify: (info: TouchInfo, identified: boolean, data: any) => IIdentifierResult);
     }
     module Identifier {
+        /**
+         * `tap` identifier, identifies a quick touch.
+         */
         var tap: Identifier;
+        /**
+         * `hold` identifier, identifiers a touch longer than 500ms.
+         */
         var hold: Identifier;
+        /**
+         * delegate event interface for `free` identifier.
+         */
         interface IFreeDelegateEvent extends IDelegateEvent {
             diffX: number;
             diffY: number;
             x: number;
             y: number;
         }
+        /**
+         * `free` identifier, matches any touch with data of the first touch sequence.
+         */
         var free: Identifier;
+        /**
+         * delegate event interface for `slide-x` identifier.
+         */
         interface ISlideXDelegateEvent extends IDelegateEvent {
             diffX: number;
         }
+        /**
+         * `slide-x` identifier, identifiers horizontally touch moving.
+         */
         var slideX: Identifier;
+        /**
+         * delegate event interface for `slide-y` identifier.
+         */
         interface ISlideYDelegateEvent extends IDelegateEvent {
             diffY: number;
         }
+        /**
+         * `slide-y` identifier, identifiers vertically touch moving.
+         */
         var slideY: Identifier;
-        interface IPolylineDelegateEvent extends IDelegateEvent, IPolylineData {
+        interface IZoomDelegateEvent extends IDelegateEvent {
+            zoom: number;
         }
-        interface IPolylineData {
-            changedAxis: string;
-            diffX: number;
-            diffY: number;
-        }
-        var polylineAfterSlideY: Identifier;
+        var zoom: Identifier;
     }
 }

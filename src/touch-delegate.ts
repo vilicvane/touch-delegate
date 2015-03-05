@@ -148,12 +148,17 @@ module TouchDelegate {
             }
         }
     }
-
+    
     export interface IDelegateEvent {
-        //changedSequences: TouchSequence[];
+        originalEvent: Event;
         target: EventTarget;
         touch: TouchInfo;
+        firstMatch: boolean;
         stopPropagation: (stopAll?: boolean) => void;
+    }
+
+    export interface IDelegateListener {
+        (event: IDelegateEvent): void|boolean;
     }
 
     export interface ITouchEventPoint {
@@ -195,7 +200,7 @@ module TouchDelegate {
             return points[points.length - 1];
         }
 
-        get end(): boolean {
+        get ended(): boolean {
             var point = this.last;
             return !!point && point.isEnd;
         }
@@ -292,7 +297,7 @@ module TouchDelegate {
         get timeLasting() {
             var first = this.first;
             var last = this.last;
-            return (this.end ? last.time : Date.now()) - first.time;
+            return (this.ended ? last.time : Date.now()) - first.time;
         }
 
         get maxRadius() {
@@ -321,11 +326,11 @@ module TouchDelegate {
         sequences: TouchSequence[] = [];
         activeSequenceMap = new Utils.StringMap<TouchSequence>();
 
-        get start(): boolean {
-            return !this.end && this.sequences.length == 1 && this.sequences[0].touchPoints.length == 1;
+        get isStart(): boolean {
+            return !this.isEnd && this.sequences.length == 1 && this.sequences[0].touchPoints.length == 1;
         }
 
-        get end(): boolean {
+        get isEnd(): boolean {
             return !this.activeSequenceMap.keys.length;
         }
 
@@ -338,7 +343,7 @@ module TouchDelegate {
             var firstSequence = sequences[0];
             var start = firstSequence.first.time;
 
-            if (this.end) {
+            if (this.isEnd) {
                 var end = 0;
                 sequences.forEach(sequence => {
                     end = Math.max(end, sequence.last.time);
@@ -353,7 +358,7 @@ module TouchDelegate {
     export interface IDelegateItem {
         id: string;
         identifier: Identifier;
-        listener: (event: IDelegateEvent) => void;
+        listener: IDelegateListener;
         priority: number;
     }
 
@@ -445,50 +450,42 @@ module TouchDelegate {
 
                 $(document)
                     .on(typePointerDown, (e: JQueryEventObject) => {
-                        var oe: PointerEvent = <any>e.originalEvent;
-                        Delegate._pointerDown(oe.pointerId, oe.clientX, oe.clientY);
-                        //e.stopPropagation();
-                        //e.preventDefault();
+                        var oe = <PointerEvent>e.originalEvent;
+                        Delegate._pointerDown(oe, oe.pointerId, oe.clientX, oe.clientY);
                     })
                     .on(typePointerMove, e => {
-                        var oe: PointerEvent = <any>e.originalEvent;
-                        Delegate._pointerMove(oe.pointerId, oe.clientX, oe.clientY);
-                        //e.preventDefault();
+                        var oe = <PointerEvent>e.originalEvent;
+                        Delegate._pointerMove(oe, oe.pointerId, oe.clientX, oe.clientY);
                     })
                     .on(typePointerUp, e => {
-                        var oe: PointerEvent = <any>e.originalEvent;
-                        Delegate._pointerUp(oe.pointerId);
-                        //e.preventDefault();
+                        var oe = <PointerEvent>e.originalEvent;
+                        Delegate._pointerUp(oe, oe.pointerId);
                     });
             } else {
                 $(document)
                     .on('touchstart', (e: JQueryEventObject) => {
-                        var oe: TouchEvent = <any>e.originalEvent;
+                        var oe = <TouchEvent>e.originalEvent;
                         var touches = oe.changedTouches;
                         for (var i = 0; i < touches.length; i++) {
                             var touch = touches[i];
-                            Delegate._pointerDown(touch.identifier, touch.clientX, touch.clientY);
+                            Delegate._pointerDown(oe, touch.identifier, touch.clientX, touch.clientY);
                         }
-                        //e.stopPropagation();
-                        //e.preventDefault();
                     })
                     .on('touchmove', e => {
-                        var oe: TouchEvent = <any>e.originalEvent;
+                        var oe = <TouchEvent>e.originalEvent;
                         var touches = oe.changedTouches;
                         for (var i = 0; i < touches.length; i++) {
                             var touch = touches[i];
-                            Delegate._pointerMove(touch.identifier, touch.clientX, touch.clientY);
+                            Delegate._pointerMove(oe, touch.identifier, touch.clientX, touch.clientY);
                         }
-                        //e.preventDefault();
                     })
                     .on('touchend touchcancel', (e: JQueryEventObject) => {
-                        var oe: TouchEvent = <any>e.originalEvent;
+                        var oe = <TouchEvent>e.originalEvent;
                         var touches = oe.changedTouches;
                         for (var i = 0; i < touches.length; i++) {
                             var touch = touches[i];
-                            Delegate._pointerUp(touch.identifier);
+                            Delegate._pointerUp(oe, touch.identifier);
                         }
-                        //e.preventDefault();
                     });
             }
         })();
@@ -502,7 +499,7 @@ module TouchDelegate {
             this._addEventListeners(typeof selector == 'string' ? selector : null, preventDefault);
         }
 
-        private static _pointerDown(id: number, x: number, y: number) {
+        private static _pointerDown(originalEvent: Event, id: number, x: number, y: number) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
 
@@ -528,10 +525,10 @@ module TouchDelegate {
                 time: Date.now()
             });
 
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
         }
 
-        private static _pointerMove(id: number, x: number, y: number) {
+        private static _pointerMove(originalEvent: Event, id: number, x: number, y: number) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
 
@@ -550,10 +547,10 @@ module TouchDelegate {
                 time: Date.now()
             });
 
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
         }
 
-        private static _pointerUp(id: number) {
+        private static _pointerUp(originalEvent: Event, id: number) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
 
@@ -577,7 +574,7 @@ module TouchDelegate {
 
             sequencesMap.remove(idStr);
 
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
 
             if (!sequencesMap.keys.length) {
                 info.sequences.length = 0;
@@ -607,7 +604,7 @@ module TouchDelegate {
 
         private static _timeoutIds: number[] = [];
 
-        private static _trigger(triggerItem?: IDelegateItem) {
+        private static _trigger(originalEvent: Event, triggerItem?: IDelegateItem) {
             var info = Delegate._touchInfo;
 
             Delegate._currentDelegateItems = Delegate._currentDelegateItems.filter(item => {
@@ -643,6 +640,7 @@ module TouchDelegate {
                 }
 
                 var match: boolean;
+                var firstMatch = !identified;
 
                 if (result.identified) {
                     match = result.match;
@@ -659,7 +657,7 @@ module TouchDelegate {
                     }
                 } else if (typeof result.timeout == 'number') {
                     var timeoutId = setTimeout(() => {
-                        Delegate._trigger(item);
+                        Delegate._trigger(originalEvent, item);
                     }, result.timeout);
                     Delegate._timeoutIds.push(timeoutId);
                     return true;
@@ -668,8 +666,10 @@ module TouchDelegate {
                 if (identified) {
                     if (match) {
                         var eventData: IDelegateEvent = {
+                            originalEvent: originalEvent,
                             target: Delegate._triggerTarget,
                             touch: info,
+                            firstMatch: firstMatch,
                             stopPropagation: result.end !== false ?
                             (stopAll) => {
                                 if (stopAll) {
@@ -692,7 +692,9 @@ module TouchDelegate {
                         }
 
                         try {
-                            item.listener(eventData);
+                            if (item.listener(eventData) === false) {
+                                return false;
+                            }
                         } catch (e) {
                             setTimeout(() => {
                                 throw e;
@@ -702,7 +704,7 @@ module TouchDelegate {
 
                     if (!match || result.end !== false) {
                         return false;
-                    } else {
+                    } else { 
                         return true;
                     }
                 } else {
@@ -711,7 +713,7 @@ module TouchDelegate {
             });
         }
 
-        on(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority = 0) {
+        on(identifier: Identifier, listener: IDelegateListener, priority = 0) {
             this._insert({
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
@@ -720,7 +722,7 @@ module TouchDelegate {
             });
         }
 
-        delegate(identifier: Identifier, selector: any, listener: (event: IDelegateEvent) => void, priority = 0) {
+        delegate(identifier: Identifier, selector: any, listener: IDelegateListener, priority = 0) {
             this._insert({
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
@@ -743,5 +745,4 @@ module TouchDelegate {
             });
         }
     }
-
 }

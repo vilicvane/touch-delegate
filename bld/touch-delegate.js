@@ -691,6 +691,9 @@ var TouchDelegate;
     TouchDelegate.Identifier = Identifier;
     var Identifier;
     (function (Identifier) {
+        /**
+         * `tap` identifier, identifies a quick touch.
+         */
         Identifier.tap = new Identifier('tap', function (info) {
             var sequences = info.sequences;
             var sequence = sequences[0];
@@ -709,6 +712,9 @@ var TouchDelegate;
                 };
             }
         });
+        /**
+         * `hold` identifier, identifiers a touch longer than 500ms.
+         */
         Identifier.hold = new Identifier('hold', function (info) {
             var sequences = info.sequences;
             var sequence = sequences[0];
@@ -726,7 +732,7 @@ var TouchDelegate;
                     end: true
                 };
             }
-            if (sequence.timeLasting >= 1000) {
+            if (sequence.timeLasting >= 500) {
                 return {
                     identified: true,
                     match: true,
@@ -740,6 +746,9 @@ var TouchDelegate;
                 };
             }
         });
+        /**
+         * `free` identifier, matches any touch with data of the first touch sequence.
+         */
         Identifier.free = new Identifier('free', function (info) {
             var sequence = info.sequences[0];
             return {
@@ -754,13 +763,16 @@ var TouchDelegate;
                 }
             };
         });
+        /**
+         * `slide-x` identifier, identifiers horizontally touch moving.
+         */
         Identifier.slideX = new Identifier('slide-x', function (info, identified) {
             var sequences = info.sequences;
             var sequence = sequences[0];
             var match = identified;
             if (!identified && sequence.maxRadius > 2) {
                 identified = true;
-                if (Math.abs(sequence.slope) < 1 && sequences.length == 1) {
+                if (Math.abs(sequence.lastSlope) < 1 && sequences.length == 1) {
                     match = true;
                 }
             }
@@ -773,13 +785,16 @@ var TouchDelegate;
                 }
             };
         });
+        /**
+         * `slide-y` identifier, identifiers vertically touch moving.
+         */
         Identifier.slideY = new Identifier('slide-y', function (info, identified) {
             var sequences = info.sequences;
             var sequence = sequences[0];
             var match = identified;
             if (!identified && sequence.maxRadius > 2) {
                 identified = true;
-                if (Math.abs(sequence.slope) > 1 && sequences.length == 1) {
+                if (Math.abs(sequence.lastSlope) > 1 && sequences.length == 1) {
                     match = true;
                 }
             }
@@ -792,47 +807,13 @@ var TouchDelegate;
                 }
             };
         });
-        Identifier.polylineAfterSlideY = new Identifier('polyline-after-slide-y', function (info, identified, data) {
-            var sequences = info.sequences;
-            var sequence = sequences[0];
-            var match = identified;
-            if (!identified && sequence.maxRadius > 2) {
-                identified = true;
-                if (Math.abs(sequence.slope) > 1 && sequences.length == 1) {
-                    match = true;
-                }
-            }
-            var lastSlope = Math.abs(sequence.lastSlope);
-            if (!data) {
-                data = {
-                    changedAxis: 'y',
-                    diffX: 0,
-                    diffY: 0
-                };
-            }
-            if (lastSlope > 1) {
-                // y
-                data.changedAxis = 'y';
-                data.diffY += sequence.lastDiffY;
-            }
-            else if (lastSlope < 1) {
-                // x
-                data.changedAxis = 'x';
-                data.diffX += sequence.lastDiffX;
-            }
-            else if (data.changedAxis == 'y') {
-                data.diffY += sequence.lastDiffY;
-            }
-            else {
-                data.diffX += sequence.lastDiffX;
-            }
+        Identifier.zoom = new Identifier('zoom', function (info, identified) {
             return {
-                identified: identified,
-                match: match,
-                end: false,
-                data: data
+                identified: false
             };
         });
     })(Identifier = TouchDelegate.Identifier || (TouchDelegate.Identifier = {}));
 })(TouchDelegate || (TouchDelegate = {}));
+/// <reference path="src/touch-delegate.ts" />
+/// <reference path="src/identifiers.ts" /> 
 //# sourceMappingURL=touch-delegate.js.map
