@@ -9,7 +9,7 @@
 */
 
 module TouchDelegate {
-    export interface IIdentifierResult {
+    export interface IdentifierResult {
         identified: boolean;
         match?: boolean;
         timeout?: number;
@@ -20,12 +20,11 @@ module TouchDelegate {
     export class Identifier {
         constructor(
             public name: string,
-            public identify: (info: TouchInfo, identified: boolean, data: any) => IIdentifierResult
+            public identify: (info: TouchInfo, identified: boolean, data: any) => IdentifierResult
             ) { }
     }
 
     export module Identifier {
-
         /**
          * `tap` identifier, identifies a quick touch.
          */
@@ -45,7 +44,7 @@ module TouchDelegate {
                 };
             }
 
-            if (sequence.end) {
+            if (sequence.ended) {
                 return {
                     identified: true,
                     match: true,
@@ -72,7 +71,7 @@ module TouchDelegate {
                 };
             }
 
-            if (sequence.end) {
+            if (sequence.ended) {
                 return {
                     identified: true,
                     match: false,
@@ -89,7 +88,7 @@ module TouchDelegate {
             }
 
             if (sequence.touchPoints.length == 1) {
-                return <IIdentifierResult>{
+                return <IdentifierResult>{
                     identified: false,
                     timeout: 1000
                 };
@@ -99,7 +98,7 @@ module TouchDelegate {
         /**
          * delegate event interface for `free` identifier.
          */
-        export interface IFreeDelegateEvent extends IDelegateEvent {
+        export interface FreeDelegateEvent extends DelegateEvent {
             diffX: number;
             diffY: number;
             x: number;
@@ -128,7 +127,7 @@ module TouchDelegate {
         /**
          * delegate event interface for `slide-x` identifier.
          */
-        export interface ISlideXDelegateEvent extends IDelegateEvent { 
+        export interface SlideXDelegateEvent extends DelegateEvent { 
             diffX: number;
         }
 
@@ -162,7 +161,7 @@ module TouchDelegate {
         /**
          * delegate event interface for `slide-y` identifier.
          */
-        export interface ISlideYDelegateEvent extends IDelegateEvent {
+        export interface SlideYDelegateEvent extends DelegateEvent {
             diffY: number;
         }
         

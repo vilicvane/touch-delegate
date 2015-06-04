@@ -139,7 +139,7 @@ var TouchDelegate;
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(TouchSequence.prototype, "end", {
+        Object.defineProperty(TouchSequence.prototype, "ended", {
             get: function () {
                 var point = this.last;
                 return !!point && point.isEnd;
@@ -244,7 +244,8 @@ var TouchDelegate;
                         speed: 0
                     };
                 }
-                var pointB = points.length < 3 || !pointA.isEnd ? points[points.length - 2] : points[points.length - 3];
+                var pointB = points.length < 3 || !pointA.isEnd ?
+                    points[points.length - 2] : points[points.length - 3];
                 var duration = pointB.time - pointA.time;
                 return {
                     x: (pointB.x - pointA.x) / duration,
@@ -259,7 +260,7 @@ var TouchDelegate;
             get: function () {
                 var first = this.first;
                 var last = this.last;
-                return (this.end ? last.time : Date.now()) - first.time;
+                return (this.ended ? last.time : Date.now()) - first.time;
             },
             enumerable: true,
             configurable: true
@@ -292,14 +293,14 @@ var TouchDelegate;
             this.sequences = [];
             this.activeSequenceMap = new Utils.StringMap();
         }
-        Object.defineProperty(TouchInfo.prototype, "start", {
+        Object.defineProperty(TouchInfo.prototype, "isStart", {
             get: function () {
-                return !this.end && this.sequences.length == 1 && this.sequences[0].touchPoints.length == 1;
+                return !this.isEnd && this.sequences.length == 1 && this.sequences[0].touchPoints.length == 1;
             },
             enumerable: true,
             configurable: true
         });
-        Object.defineProperty(TouchInfo.prototype, "end", {
+        Object.defineProperty(TouchInfo.prototype, "isEnd", {
             get: function () {
                 return !this.activeSequenceMap.keys.length;
             },
@@ -314,7 +315,7 @@ var TouchDelegate;
                 }
                 var firstSequence = sequences[0];
                 var start = firstSequence.first.time;
-                if (this.end) {
+                if (this.isEnd) {
                     var end = 0;
                     sequences.forEach(function (sequence) {
                         end = Math.max(end, sequence.last.time);
@@ -356,10 +357,12 @@ var TouchDelegate;
                         };
                         var $parent = _this._$parent;
                         if (selector == null) {
-                            _this._$target.on(typePointerDown, onpointerdown);
+                            _this._$target
+                                .on(typePointerDown, onpointerdown);
                         }
                         else {
-                            $parent.delegate(selector, typePointerDown, onpointerdown);
+                            $parent
+                                .delegate(selector, typePointerDown, onpointerdown);
                         }
                     };
                 }
@@ -374,10 +377,12 @@ var TouchDelegate;
                         };
                         var $parent = _this._$parent;
                         if (selector == null) {
-                            _this._$target.on('touchstart', ontouchstart);
+                            _this._$target
+                                .on('touchstart', ontouchstart);
                         }
                         else {
-                            $parent.delegate(selector, 'touchstart', ontouchstart);
+                            $parent
+                                .delegate(selector, 'touchstart', ontouchstart);
                         }
                     };
                 }
@@ -393,7 +398,7 @@ var TouchDelegate;
             enumerable: true,
             configurable: true
         });
-        Delegate._pointerDown = function (id, x, y) {
+        Delegate._pointerDown = function (originalEvent, id, x, y) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
             var sequenceMap = info.activeSequenceMap;
@@ -415,9 +420,9 @@ var TouchDelegate;
                 isEnd: false,
                 time: Date.now()
             });
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
         };
-        Delegate._pointerMove = function (id, x, y) {
+        Delegate._pointerMove = function (originalEvent, id, x, y) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
             var sequencesMap = info.activeSequenceMap;
@@ -432,9 +437,9 @@ var TouchDelegate;
                 isEnd: false,
                 time: Date.now()
             });
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
         };
-        Delegate._pointerUp = function (id) {
+        Delegate._pointerUp = function (originalEvent, id) {
             var idStr = id.toString();
             var info = Delegate._touchInfo;
             var sequencesMap = info.activeSequenceMap;
@@ -452,7 +457,7 @@ var TouchDelegate;
                 time: Date.now()
             });
             sequencesMap.remove(idStr);
-            Delegate._trigger();
+            Delegate._trigger(originalEvent);
             if (!sequencesMap.keys.length) {
                 info.sequences.length = 0;
                 info.dataMap.clear();
@@ -474,7 +479,7 @@ var TouchDelegate;
             }
             items.splice(i + 1, 0, item);
         };
-        Delegate._trigger = function (triggerItem) {
+        Delegate._trigger = function (originalEvent, triggerItem) {
             var info = Delegate._touchInfo;
             Delegate._currentDelegateItems = Delegate._currentDelegateItems.filter(function (item) {
                 if (triggerItem && triggerItem != item) {
@@ -503,6 +508,7 @@ var TouchDelegate;
                     return true;
                 }
                 var match;
+                var firstMatch = !identified;
                 if (result.identified) {
                     match = result.match;
                     data = result.data;
@@ -518,7 +524,7 @@ var TouchDelegate;
                 }
                 else if (typeof result.timeout == 'number') {
                     var timeoutId = setTimeout(function () {
-                        Delegate._trigger(item);
+                        Delegate._trigger(originalEvent, item);
                     }, result.timeout);
                     Delegate._timeoutIds.push(timeoutId);
                     return true;
@@ -526,29 +532,35 @@ var TouchDelegate;
                 if (identified) {
                     if (match) {
                         var eventData = {
+                            originalEvent: originalEvent,
                             target: Delegate._triggerTarget,
                             touch: info,
-                            stopPropagation: result.end !== false ? function (stopAll) {
-                                if (stopAll) {
-                                    Delegate._stopAll = true;
+                            firstMatch: firstMatch,
+                            stopPropagation: result.end !== false ?
+                                function (stopAll) {
+                                    if (stopAll) {
+                                        Delegate._stopAll = true;
+                                    }
+                                    else {
+                                        Delegate._stopPropagationHash.set(identifier.name);
+                                    }
+                                } :
+                                function (stopAll) {
+                                    if (stopAll) {
+                                        Delegate._stopAll = true;
+                                    }
+                                    else {
+                                        throw new Error('can not call stopPropagation on a touch delegate event not marked as end');
+                                    }
                                 }
-                                else {
-                                    Delegate._stopPropagationHash.set(identifier.name);
-                                }
-                            } : function (stopAll) {
-                                if (stopAll) {
-                                    Delegate._stopAll = true;
-                                }
-                                else {
-                                    throw new Error('can not call stopPropagation on a touch delegate event not marked as end');
-                                }
-                            }
                         };
                         if (data) {
                             $.extend(eventData, data);
                         }
                         try {
-                            item.listener(eventData);
+                            if (item.listener(eventData) === false) {
+                                return false;
+                            }
                         }
                         catch (e) {
                             setTimeout(function () {
@@ -621,47 +633,45 @@ var TouchDelegate;
                     typePointerMove = 'MSPointerMove';
                     typePointerUp = 'MSPointerUp MSPointerCancel';
                 }
-                $(document).on(typePointerDown, function (e) {
+                $(document)
+                    .on(typePointerDown, function (e) {
                     var oe = e.originalEvent;
-                    Delegate._pointerDown(oe.pointerId, oe.clientX, oe.clientY);
-                    //e.stopPropagation();
-                    //e.preventDefault();
-                }).on(typePointerMove, function (e) {
+                    Delegate._pointerDown(oe, oe.pointerId, oe.clientX, oe.clientY);
+                })
+                    .on(typePointerMove, function (e) {
                     var oe = e.originalEvent;
-                    Delegate._pointerMove(oe.pointerId, oe.clientX, oe.clientY);
-                    //e.preventDefault();
-                }).on(typePointerUp, function (e) {
+                    Delegate._pointerMove(oe, oe.pointerId, oe.clientX, oe.clientY);
+                })
+                    .on(typePointerUp, function (e) {
                     var oe = e.originalEvent;
-                    Delegate._pointerUp(oe.pointerId);
-                    //e.preventDefault();
+                    Delegate._pointerUp(oe, oe.pointerId);
                 });
             }
             else {
-                $(document).on('touchstart', function (e) {
+                $(document)
+                    .on('touchstart', function (e) {
                     var oe = e.originalEvent;
                     var touches = oe.changedTouches;
                     for (var i = 0; i < touches.length; i++) {
                         var touch = touches[i];
-                        Delegate._pointerDown(touch.identifier, touch.clientX, touch.clientY);
+                        Delegate._pointerDown(oe, touch.identifier, touch.clientX, touch.clientY);
                     }
-                    //e.stopPropagation();
-                    //e.preventDefault();
-                }).on('touchmove', function (e) {
+                })
+                    .on('touchmove', function (e) {
                     var oe = e.originalEvent;
                     var touches = oe.changedTouches;
                     for (var i = 0; i < touches.length; i++) {
                         var touch = touches[i];
-                        Delegate._pointerMove(touch.identifier, touch.clientX, touch.clientY);
+                        Delegate._pointerMove(oe, touch.identifier, touch.clientX, touch.clientY);
                     }
-                    //e.preventDefault();
-                }).on('touchend touchcancel', function (e) {
+                })
+                    .on('touchend touchcancel', function (e) {
                     var oe = e.originalEvent;
                     var touches = oe.changedTouches;
                     for (var i = 0; i < touches.length; i++) {
                         var touch = touches[i];
-                        Delegate._pointerUp(touch.identifier);
+                        Delegate._pointerUp(oe, touch.identifier);
                     }
-                    //e.preventDefault();
                 });
             }
         })();
@@ -697,14 +707,16 @@ var TouchDelegate;
         Identifier.tap = new Identifier('tap', function (info) {
             var sequences = info.sequences;
             var sequence = sequences[0];
-            if (sequences.length > 1 || sequence.timeLasting > 500 || sequence.maxRadius > 5) {
+            if (sequences.length > 1 ||
+                sequence.timeLasting > 500 ||
+                sequence.maxRadius > 5) {
                 return {
                     identified: true,
                     match: false,
                     end: true
                 };
             }
-            if (sequence.end) {
+            if (sequence.ended) {
                 return {
                     identified: true,
                     match: true,
@@ -718,14 +730,15 @@ var TouchDelegate;
         Identifier.hold = new Identifier('hold', function (info) {
             var sequences = info.sequences;
             var sequence = sequences[0];
-            if (sequences.length > 1 || sequence.maxRadius > 3) {
+            if (sequences.length > 1 ||
+                sequence.maxRadius > 3) {
                 return {
                     identified: true,
                     match: false,
                     end: true
                 };
             }
-            if (sequence.end) {
+            if (sequence.ended) {
                 return {
                     identified: true,
                     match: false,
@@ -805,11 +818,6 @@ var TouchDelegate;
                 data: {
                     diffY: sequence.diffY
                 }
-            };
-        });
-        Identifier.zoom = new Identifier('zoom', function (info, identified) {
-            return {
-                identified: false
             };
         });
     })(Identifier = TouchDelegate.Identifier || (TouchDelegate.Identifier = {}));

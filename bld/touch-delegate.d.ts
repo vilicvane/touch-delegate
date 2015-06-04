@@ -1,39 +1,10 @@
-interface Touch {
-    identifier: number;
-    screenX: number;
-    screenY: number;
-    clientX: number;
-    clientY: number;
-    pageX: number;
-    pageY: number;
-    radiusX: number;
-    radiusY: number;
-    rotationAngle: number;
-    force: number;
-    target: Element;
-}
-interface TouchList {
-    [index: number]: Touch;
-    length: number;
-    item(index: number): Touch;
-    identifiedTouch(id: number): Touch;
-}
-interface TouchEvent extends Event {
-    altKey: boolean;
-    changedTouches: TouchList;
-    ctrlKey: boolean;
-    metaKey: boolean;
-    shiftKey: boolean;
-    targetTouches: TouchList;
-    touches: TouchList;
-}
 declare module TouchDelegate {
-    interface IDictionary<T> {
+    interface Dictionary<T> {
         [key: string]: T;
     }
     module Utils {
         var hop: (v: string) => boolean;
-        function clone<T extends {}>(src: T): T;
+        function clone<T extends Dictionary<any>>(src: T): T;
         class StringHash {
             private _map;
             keys: string[];
@@ -44,45 +15,50 @@ declare module TouchDelegate {
         }
         class StringMap<T> {
             private _map;
-            map: IDictionary<T>;
+            map: Dictionary<T>;
             keys: string[];
             exists(key: string): boolean;
             get(key: string, defaultValue?: T): T;
             set(key: string, value: T): void;
-            remove(key: string): any;
-            remove(filter: (key: string, value: T) => boolean): any;
+            remove(key: string): void;
+            remove(filter: (key: string, value: T) => boolean): void;
             clear(): void;
         }
     }
-    interface IDelegateEvent {
+    interface DelegateEvent {
+        originalEvent: Event;
         target: EventTarget;
         touch: TouchInfo;
+        firstMatch: boolean;
         stopPropagation: (stopAll?: boolean) => void;
     }
-    interface ITouchEventPoint {
+    interface DelegateListener {
+        (event: DelegateEvent): void | boolean;
+    }
+    interface TouchEventPoint {
         x: number;
         y: number;
         time: number;
         isStart: boolean;
         isEnd: boolean;
     }
-    interface IPoint {
+    interface Point {
         x: number;
         y: number;
     }
-    interface IVelocity {
+    interface Velocity {
         x: number;
         y: number;
         speed: number;
     }
-    function getDistance(pointA: IPoint, pointB: IPoint): number;
+    function getDistance(pointA: Point, pointB: Point): number;
     class TouchSequence {
         identifier: number;
-        touchPoints: ITouchEventPoint[];
+        touchPoints: TouchEventPoint[];
         constructor(identifier: number);
-        first: ITouchEventPoint;
-        last: ITouchEventPoint;
-        end: boolean;
+        first: TouchEventPoint;
+        last: TouchEventPoint;
+        ended: boolean;
         x: number;
         y: number;
         diffX: number;
@@ -91,23 +67,23 @@ declare module TouchDelegate {
         lastDiffY: number;
         slope: number;
         lastSlope: number;
-        velocity: IVelocity;
+        velocity: Velocity;
         timeLasting: number;
         maxRadius: number;
-        add(point: ITouchEventPoint): void;
+        add(point: TouchEventPoint): void;
     }
     class TouchInfo {
         dataMap: Utils.StringMap<any>;
         sequences: TouchSequence[];
         activeSequenceMap: Utils.StringMap<TouchSequence>;
-        start: boolean;
-        end: boolean;
+        isStart: boolean;
+        isEnd: boolean;
         timeLasting: number;
     }
-    interface IDelegateItem {
+    interface DelegateItem {
         id: string;
         identifier: Identifier;
-        listener: (event: IDelegateEvent) => void;
+        listener: DelegateListener;
         priority: number;
     }
     class Delegate {
@@ -126,18 +102,18 @@ declare module TouchDelegate {
         constructor($ele: JQuery, preventDefault?: boolean, parent?: Node);
         constructor(node: Node, preventDefault?: boolean, parent?: Node);
         constructor(selector: string, preventDefault?: boolean, parent?: Node);
-        private static _pointerDown(id, x, y);
-        private static _pointerMove(id, x, y);
-        private static _pointerUp(id);
+        private static _pointerDown(originalEvent, id, x, y);
+        private static _pointerMove(originalEvent, id, x, y);
+        private static _pointerUp(originalEvent, id);
         private _insert(item);
         private static _timeoutIds;
-        private static _trigger(triggerItem?);
-        on(identifier: Identifier, listener: (event: IDelegateEvent) => void, priority?: number): void;
-        delegate(identifier: Identifier, selector: any, listener: (event: IDelegateEvent) => void, priority?: number): void;
+        private static _trigger(originalEvent, triggerItem?);
+        on(identifier: Identifier, listener: DelegateListener, priority?: number): void;
+        delegate(identifier: Identifier, selector: any, listener: DelegateListener, priority?: number): void;
     }
 }
 declare module TouchDelegate {
-    interface IIdentifierResult {
+    interface IdentifierResult {
         identified: boolean;
         match?: boolean;
         timeout?: number;
@@ -146,8 +122,8 @@ declare module TouchDelegate {
     }
     class Identifier {
         name: string;
-        identify: (info: TouchInfo, identified: boolean, data: any) => IIdentifierResult;
-        constructor(name: string, identify: (info: TouchInfo, identified: boolean, data: any) => IIdentifierResult);
+        identify: (info: TouchInfo, identified: boolean, data: any) => IdentifierResult;
+        constructor(name: string, identify: (info: TouchInfo, identified: boolean, data: any) => IdentifierResult);
     }
     module Identifier {
         /**
@@ -161,7 +137,7 @@ declare module TouchDelegate {
         /**
          * delegate event interface for `free` identifier.
          */
-        interface IFreeDelegateEvent extends IDelegateEvent {
+        interface FreeDelegateEvent extends DelegateEvent {
             diffX: number;
             diffY: number;
             x: number;
@@ -174,7 +150,7 @@ declare module TouchDelegate {
         /**
          * delegate event interface for `slide-x` identifier.
          */
-        interface ISlideXDelegateEvent extends IDelegateEvent {
+        interface SlideXDelegateEvent extends DelegateEvent {
             diffX: number;
         }
         /**
@@ -184,16 +160,12 @@ declare module TouchDelegate {
         /**
          * delegate event interface for `slide-y` identifier.
          */
-        interface ISlideYDelegateEvent extends IDelegateEvent {
+        interface SlideYDelegateEvent extends DelegateEvent {
             diffY: number;
         }
         /**
          * `slide-y` identifier, identifiers vertically touch moving.
          */
         var slideY: Identifier;
-        interface IZoomDelegateEvent extends IDelegateEvent {
-            zoom: number;
-        }
-        var zoom: Identifier;
     }
 }

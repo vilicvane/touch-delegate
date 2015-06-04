@@ -8,48 +8,15 @@
     MIT License
 */
 
-interface Touch {
-    identifier: number;
-    screenX: number;
-    screenY: number;
-    clientX: number;
-    clientY: number;
-    pageX: number;
-    pageY: number;
-    radiusX: number;
-    radiusY: number;
-    rotationAngle: number;
-    force: number;
-    target: Element;
-}
-
-interface TouchList {
-    [index: number]: Touch;
-    length: number;
-
-    item(index: number): Touch;
-    identifiedTouch(id: number): Touch;
-}
-
-interface TouchEvent extends Event {
-    altKey: boolean;
-    changedTouches: TouchList;
-    ctrlKey: boolean;
-    metaKey: boolean;
-    shiftKey: boolean;
-    targetTouches: TouchList;
-    touches: TouchList;
-}
-
 module TouchDelegate {
-    export interface IDictionary<T> {
+    export interface Dictionary<T> {
         [key: string]: T;
     }
 
     export module Utils {
         export var hop = Object.prototype.hasOwnProperty;
 
-        export function clone<T extends {}>(src: T): T {
+        export function clone<T extends Dictionary<any>>(src: T): T {
             var dest: T = <any>(src instanceof Array ? [] : {});
 
             for (var key in src) {
@@ -70,7 +37,7 @@ module TouchDelegate {
         }
 
         export class StringHash {
-            private _map: IDictionary<void> = {};
+            private _map: Dictionary<void> = {};
 
             get keys(): string[] {
                 return Object.keys(this._map);
@@ -94,9 +61,9 @@ module TouchDelegate {
         }
 
         export class StringMap<T> {
-            private _map: IDictionary<T> = {};
+            private _map: Dictionary<T> = {};
 
-            get map(): IDictionary<T> {
+            get map(): Dictionary<T> {
                 return clone(this._map);
             }
 
@@ -119,13 +86,13 @@ module TouchDelegate {
                 }
             }
 
-            set(key: string, value: T) {
+            set(key: string, value: T): void {
                 this._map[key] = value;
             }
 
-            remove(key: string);
-            remove(filter: (key: string, value: T) => boolean);
-            remove(key: any) {
+            remove(key: string): void;
+            remove(filter: (key: string, value: T) => boolean): void;
+            remove(key: any): void {
                 if (typeof key == 'function') {
                     var filter: (key: string, value: T) => boolean = key;
                     var map = this._map;
@@ -149,7 +116,7 @@ module TouchDelegate {
         }
     }
     
-    export interface IDelegateEvent {
+    export interface DelegateEvent {
         originalEvent: Event;
         target: EventTarget;
         touch: TouchInfo;
@@ -157,11 +124,11 @@ module TouchDelegate {
         stopPropagation: (stopAll?: boolean) => void;
     }
 
-    export interface IDelegateListener {
-        (event: IDelegateEvent): void|boolean;
+    export interface DelegateListener {
+        (event: DelegateEvent): void|boolean;
     }
 
-    export interface ITouchEventPoint {
+    export interface TouchEventPoint {
         x: number;
         y: number;
         time: number;
@@ -169,33 +136,33 @@ module TouchDelegate {
         isEnd: boolean;
     }
 
-    export interface IPoint {
+    export interface Point {
         x: number;
         y: number;
     }
 
-    export interface IVelocity {
+    export interface Velocity {
         x: number;
         y: number;
         speed: number;
     }
 
-    export function getDistance(pointA: IPoint, pointB: IPoint) {
+    export function getDistance(pointA: Point, pointB: Point) {
         var diffX = pointA.x - pointB.x;
         var diffY = pointA.y - pointB.y;
         return Math.sqrt(diffX * diffX + diffY * diffY);
     }
 
     export class TouchSequence {
-        touchPoints: ITouchEventPoint[] = [];
+        touchPoints: TouchEventPoint[] = [];
 
         constructor(public identifier: number) { }
 
-        get first(): ITouchEventPoint {
+        get first(): TouchEventPoint {
             return this.touchPoints[0];
         }
 
-        get last(): ITouchEventPoint {
+        get last(): TouchEventPoint {
             var points = this.touchPoints;
             return points[points.length - 1];
         }
@@ -269,7 +236,7 @@ module TouchDelegate {
             return this.lastDiffY / this.lastDiffX;
         }
 
-        get velocity(): IVelocity {
+        get velocity(): Velocity {
             var points = this.touchPoints;
 
             var pointA = points[points.length - 1];
@@ -316,7 +283,7 @@ module TouchDelegate {
             return max;
         }
 
-        add(point: ITouchEventPoint) {
+        add(point: TouchEventPoint) {
             this.touchPoints.push(point);
         }
     }
@@ -355,10 +322,10 @@ module TouchDelegate {
         }
     }
 
-    export interface IDelegateItem {
+    export interface DelegateItem {
         id: string;
         identifier: Identifier;
-        listener: IDelegateListener;
+        listener: DelegateListener;
         priority: number;
     }
 
@@ -376,8 +343,8 @@ module TouchDelegate {
         private _$parent: JQuery;
 
         private static _triggerTarget: EventTarget;
-        private static _currentDelegateItems: IDelegateItem[] = [];
-        private _delegateItems: IDelegateItem[] = [];
+        private static _currentDelegateItems: DelegateItem[] = [];
+        private _delegateItems: DelegateItem[] = [];
 
         private _addEventListeners = (() => {
             if (navigator.pointerEnabled || navigator.msPointerEnabled) {
@@ -588,7 +555,7 @@ module TouchDelegate {
             }
         }
 
-        private _insert(item: IDelegateItem) {
+        private _insert(item: DelegateItem) {
             var items = this._delegateItems;
 
             var i: number;
@@ -604,7 +571,7 @@ module TouchDelegate {
 
         private static _timeoutIds: number[] = [];
 
-        private static _trigger(originalEvent: Event, triggerItem?: IDelegateItem) {
+        private static _trigger(originalEvent: Event, triggerItem?: DelegateItem) {
             var info = Delegate._touchInfo;
 
             Delegate._currentDelegateItems = Delegate._currentDelegateItems.filter(item => {
@@ -624,7 +591,7 @@ module TouchDelegate {
                 var identified = dataMap.exists(id);
                 var data = dataMap.get(id);
 
-                var result: IIdentifierResult;
+                var result: IdentifierResult;
 
                 try {
                     result = identifier.identify(info, identified, data);
@@ -665,7 +632,7 @@ module TouchDelegate {
 
                 if (identified) {
                     if (match) {
-                        var eventData: IDelegateEvent = {
+                        var eventData: DelegateEvent = {
                             originalEvent: originalEvent,
                             target: Delegate._triggerTarget,
                             touch: info,
@@ -713,7 +680,7 @@ module TouchDelegate {
             });
         }
 
-        on(identifier: Identifier, listener: IDelegateListener, priority = 0) {
+        on(identifier: Identifier, listener: DelegateListener, priority = 0) {
             this._insert({
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
@@ -722,11 +689,11 @@ module TouchDelegate {
             });
         }
 
-        delegate(identifier: Identifier, selector: any, listener: IDelegateListener, priority = 0) {
+        delegate(identifier: Identifier, selector: any, listener: DelegateListener, priority = 0) {
             this._insert({
                 id: (Delegate._added++).toString(),
                 identifier: identifier,
-                listener: (event: IDelegateEvent) => {
+                listener: (event: DelegateEvent) => {
                     var $target = $(event.target);
                     var target: HTMLElement;
 
